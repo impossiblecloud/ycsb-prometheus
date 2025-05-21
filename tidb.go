@@ -26,7 +26,7 @@ type tidb struct {
 }
 
 func (c *tidb) ReadRow(key uint64) (bool, error) {
-	res, err := c.db.Query(fmt.Sprintf("SELECT * FROM usertable WHERE ycsb_key=%d", key))
+	res, err := c.db.Query(fmt.Sprintf("SELECT * FROM %s WHERE ycsb_key=%d", *tableName, key))
 	if err != nil {
 		return false, err
 	}
@@ -46,7 +46,7 @@ func (c *tidb) ReadRow(key uint64) (bool, error) {
 func (c *tidb) InsertRow(key uint64, fields []string) error {
 	// TODO(arjun): Consider using a prepared statement here.
 	var buf bytes.Buffer
-	buf.WriteString("INSERT INTO usertable VALUES (")
+	buf.WriteString(fmt.Sprintf("INSERT INTO %s VALUES (", *tableName))
 	fmt.Fprintf(&buf, "%d", key)
 	for _, s := range fields {
 		fmt.Fprintf(&buf, ", '%s'", s)
@@ -79,7 +79,7 @@ func setupTiDB(url string) (Database, error) {
 
 	if *drop {
 		log.Debugf("Dropping the table")
-		if _, err := db.Exec("DROP TABLE IF EXISTS usertable"); err != nil {
+		if _, err := db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s", *tableName)); err != nil {
 			log.Fatalf("Failed to drop the table: %s", err)
 			return nil, err
 		}
@@ -87,7 +87,6 @@ func setupTiDB(url string) (Database, error) {
 
 	// Create the initial table for storing blocks.
 	createStmt := `
-CREATE TABLE IF NOT EXISTS usertable (
     ycsb_key BIGINT PRIMARY KEY NOT NULL,
     FIELD1 TEXT,
     FIELD2 TEXT,
@@ -100,7 +99,7 @@ CREATE TABLE IF NOT EXISTS usertable (
     FIELD9 TEXT,
     FIELD10 TEXT
 )`
-	if _, err := db.Exec(createStmt); err != nil {
+	if _, err := db.Exec(fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (", *tableName) + createStmt); err != nil {
 		return nil, err
 	}
 

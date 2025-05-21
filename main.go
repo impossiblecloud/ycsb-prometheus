@@ -94,6 +94,8 @@ var logLevel = flag.String("L", "info", "log level: info, debug, warn, error, fa
 
 var statusAddr = flag.String("status", ":10081", "Ycsb status listening address")
 
+var tableName = flag.String("table", "usertable", "SQL table name to use for benchmarking")
+
 var readOnly int32
 
 // ycsbWorker independently issues reads, writes, and scans against the database.
@@ -347,11 +349,11 @@ func main() {
 		http.ListenAndServe(*statusAddr, nil)
 	}()
 
-	log.Info("Starting YCSB load generator")
+	log.Infof("Starting YCSB load generator for table: %s", *tableName)
 
-	dbURL := "tidb://root@tcp(127.0.0.1:4000)/"
-	if flag.NArg() == 1 {
-		dbURL = flag.Arg(0)
+	// dbURL := "tidb://root@tcp(127.0.0.1:4000)/"
+	if flag.NArg() != 1 {
+		log.Fatalf("Unexpected number of args (%d). Usage: %s <db URL>", flag.NArg(), os.Args[0])
 	}
 
 	if *concurrency < 1 {
@@ -359,7 +361,7 @@ func main() {
 			concurrency)
 	}
 
-	db, err := SetupDatabase(dbURL)
+	db, err := SetupDatabase(flag.Arg(0))
 
 	if err != nil {
 		log.Fatalf("Setting up database failed: %s", err)
